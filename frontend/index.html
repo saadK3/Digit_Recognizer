@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digit Recognizer</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f8e1e8 0%, #e6f0fd 100%);
+        }
+
+        .container {
+            background-color: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            text-align: center;
+            max-width: 95%;
+            width: 500px;
+        }
+
+        h1 {
+            color: #5a6e8c;
+            margin-bottom: 25px;
+            font-weight: 600;
+        }
+
+        #canvas-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        #canvas {
+            border-radius: 10px;
+            cursor: crosshair;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            background-color: black;
+            max-width: 100%;
+            height: auto;
+            touch-action: none;
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        button:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        #clear-btn {
+            background-color: #ffcfd2;
+            color: #d84c6e;
+        }
+
+        #clear-btn:hover {
+            background-color: #ffc2c7;
+        }
+
+        #predict-btn {
+            background-color: #c5e1f8;
+            color: #3a7fc0;
+        }
+
+        #predict-btn:hover {
+            background-color: #b6d8f5;
+        }
+
+        #result {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #6a7d94;
+            min-height: 40px;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+        }
+
+        #instruction {
+            font-size: 14px;
+            color: #8a9db0;
+            margin-bottom: 15px;
+        }
+
+        #probabilities-container {
+            margin-top: 20px;
+            text-align: left;
+            display: none;
+        }
+
+        .prob-title {
+            font-size: 16px;
+            color: #5a6e8c;
+            font-weight: 600;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .bar-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+            height: 24px;
+        }
+
+        .digit-label {
+            width: 30px;
+            text-align: right;
+            padding-right: 10px;
+            font-weight: 500;
+            color: #5a6e8c;
+        }
+
+        .bar-outer {
+            flex-grow: 1;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            height: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .bar-inner {
+            height: 100%;
+            background: linear-gradient(90deg, #c5e1f8 0%, #89c8ff 100%);
+            width: 0;
+            transition: width 0.6s ease-out;
+            border-radius: 4px;
+        }
+
+        .bar-inner.highest {
+            background: linear-gradient(90deg, #ffcfd2 0%, #ff9eab 100%);
+        }
+
+        .prob-value {
+            width: 60px;
+            text-align: left;
+            padding-left: 10px;
+            font-size: 14px;
+            color: #8a9db0;
+        }
+
+        .loading-spinner {
+            display: none;
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 15px auto;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3a7fc0;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .accuracy-note {
+            font-size: 12px;
+            color: #8a9db0;
+            margin-top: 15px;
+            font-style: italic;
+        }
+
+        .confidence-indicator {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .high-confidence {
+            background-color: #e3f7e9;
+            color: #34a853;
+        }
+
+        .medium-confidence {
+            background-color: #fff8e1;
+            color: #ffa000;
+        }
+
+        .low-confidence {
+            background-color: #ffebee;
+            color: #e53935;
+        }
+
+        @media (max-width: 450px) {
+            .container {
+                padding: 20px 15px;
+            }
+
+            button {
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Digit Recognizer</h1>
+        <p id="instruction">Draw a digit (0-9) in the box below</p>
+        <div id="canvas-container">
+            <canvas id="canvas" width="280" height="280"></canvas>
+        </div>
+        <div class="button-group">
+            <button id="clear-btn" onclick="clearCanvas()">Clear</button>
+            <button id="predict-btn" onclick="predictDigit()">Predict</button>
+        </div>
+        <div id="loading-spinner" class="loading-spinner"></div>
+        <p id="result">Draw a digit and click Predict</p>
+        
+        <div id="probabilities-container">
+            <p class="prob-title">Prediction Probabilities</p>
+            <div id="probabilities-chart"></div>
+            <p class="accuracy-note">Higher bars indicate stronger confidence levels</p>
+        </div>
+    </div>
+
+    <script>
+        let canvas = document.getElementById("canvas");
+        let ctx = canvas.getContext("2d");
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        let painting = false;
+
+        // Handle both mouse and touch events
+        canvas.addEventListener("mousedown", startPosition);
+        canvas.addEventListener("mouseup", endPosition);
+        canvas.addEventListener("mousemove", draw);
+        canvas.addEventListener("mouseout", endPosition);
+
+        // Touch support
+        canvas.addEventListener("touchstart", function(e) {
+            e.preventDefault();
+            startPosition(e.touches[0]);
+        });
+        canvas.addEventListener("touchend", function(e) {
+            e.preventDefault();
+            endPosition();
+        });
+        canvas.addEventListener("touchmove", function(e) {
+            e.preventDefault();
+            draw(e.touches[0]);
+        });
+
+        function startPosition(event) {
+            painting = true;
+            draw(event);
+        }
+
+        function endPosition() {
+            painting = false;
+            ctx.beginPath();
+        }
+
+        function draw(event) {
+            if (!painting) return;
+            
+            let rect = canvas.getBoundingClientRect();
+            let x = (event.clientX || event.pageX) - rect.left;
+            let y = (event.clientY || event.pageY) - rect.top;
+            
+            ctx.lineWidth = 18;
+            ctx.lineCap = "round";
+            ctx.strokeStyle = "white";
+            
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        }
+
+        function clearCanvas() {
+            ctx.fillStyle = "black";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            document.getElementById("result").innerText = "Draw a digit and click Predict";
+            document.getElementById("probabilities-container").style.display = "none";
+        }
+
+        function createProbabilityBars(probabilities) {
+            const container = document.getElementById("probabilities-chart");
+            container.innerHTML = "";
+            
+            // Find the highest probability
+            const highestIndex = probabilities.indexOf(Math.max(...probabilities));
+            
+            for (let i = 0; i < probabilities.length; i++) {
+                const prob = probabilities[i];
+                const percentage = Math.round(prob * 100);
+                
+                const barContainer = document.createElement("div");
+                barContainer.className = "bar-container";
+                
+                const digitLabel = document.createElement("div");
+                digitLabel.className = "digit-label";
+                digitLabel.textContent = i;
+                
+                const barOuter = document.createElement("div");
+                barOuter.className = "bar-outer";
+                
+                const barInner = document.createElement("div");
+                barInner.className = i === highestIndex ? "bar-inner highest" : "bar-inner";
+                
+                const probValue = document.createElement("div");
+                probValue.className = "prob-value";
+                probValue.textContent = percentage + "%";
+                
+                barOuter.appendChild(barInner);
+                barContainer.appendChild(digitLabel);
+                barContainer.appendChild(barOuter);
+                barContainer.appendChild(probValue);
+                container.appendChild(barContainer);
+                
+                // Trigger animation by setting width after a small delay
+                setTimeout(() => {
+                    barInner.style.width = percentage + "%";
+                }, 50 * i);
+            }
+
+            return Math.max(...probabilities);
+        }
+
+        function getConfidenceLabel(maxProbability) {
+            if (maxProbability >= 0.9) {
+                return '<span class="confidence-indicator high-confidence">High Confidence</span>';
+            } else if (maxProbability >= 0.6) {
+                return '<span class="confidence-indicator medium-confidence">Medium Confidence</span>';
+            } else {
+                return '<span class="confidence-indicator low-confidence">Low Confidence</span>';
+            }
+        }
+
+        function predictDigit() {
+            document.getElementById("result").innerText = "";
+            document.getElementById("loading-spinner").style.display = "block";
+            document.getElementById("probabilities-container").style.display = "none";
+            
+            canvas.toBlob(blob => {
+                let formData = new FormData();
+                formData.append("file", blob, "digit.png");
+                
+                fetch("/predict", { 
+                    method: "POST", 
+                    body: formData 
+                })
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById("loading-spinner").style.display = "none";
+                    
+                    // Display prediction with confidence indicator
+                    const maxProbability = Math.max(...data.probabilities);
+                    const confidenceLabel = getConfidenceLabel(maxProbability);
+                    document.getElementById("result").innerHTML = "Predicted: " + data.digit + confidenceLabel;
+                    
+                    // Display probabilities
+                    createProbabilityBars(data.probabilities);
+                    document.getElementById("probabilities-container").style.display = "block";
+                })
+                .catch(error => {
+                    document.getElementById("loading-spinner").style.display = "none";
+                    document.getElementById("result").innerText = "Error: Could not connect to server";
+                    console.error("Error:", error);
+                });
+            });
+        }
+
+        // Make canvas responsive
+        function resizeCanvas() {
+            const container = document.getElementById('canvas-container');
+            const containerWidth = container.clientWidth;
+            
+            // Only resize if container is smaller than canvas
+            if (containerWidth < 280) {
+                const scale = containerWidth / 280;
+                canvas.style.width = containerWidth + 'px';
+                canvas.style.height = (280 * scale) + 'px';
+            } else {
+                canvas.style.width = '280px';
+                canvas.style.height = '280px';
+            }
+        }
+
+        // Initial sizing and resize handler
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+    </script>
+</body> 
+</html>
